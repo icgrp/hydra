@@ -65,6 +65,7 @@ class RayProviderConf:
     region: str = "us-west-2"
     availability_zone: str = "us-west-2a,us-west-2b"
     cache_stopped_nodes: bool = False
+    project_id: str = ""
     key_pair: Dict[str, str] = field(
         default_factory=lambda: {"key_name": "hydra-${oc.env:USER,user}"}
     )
@@ -245,6 +246,37 @@ class RayAWSLauncherConf:
     sync_down: RsyncConf = RsyncConf()
 
 
+
+@dataclass
+class RayGCPConf(RayConf):
+    cluster: RayClusterConf = RayClusterConf()
+    run_env: RayRunEnv = RayRunEnv.auto
+
+
+@dataclass
+class RayGCPLauncherConf:
+    _target_: str = "hydra_plugins.hydra_ray_launcher.ray_gcp_launcher.RayGCPLauncher"
+
+    env_setup: EnvSetupConf = EnvSetupConf()
+
+    ray: RayGCPConf = RayGCPConf()
+
+    # Stop Ray GCP cluster after jobs are finished.
+    # (if False, cluster will remain provisioned and can be started with "ray up cluster.yaml").
+    stop_cluster: bool = True
+
+    # sync_up is executed before launching jobs on the cluster.
+    # This can be used for syncing up source code to remote cluster for execution.
+    # You need to sync up if your code contains multiple modules.
+    # source is local dir, target is remote dir
+    sync_up: RsyncConf = RsyncConf()
+
+    # sync_down is executed after jobs finishes on the cluster.
+    # This can be used to download jobs output to local machine avoid the hassle to log on remote machine.
+    # source is remote dir, target is local dir
+    sync_down: RsyncConf = RsyncConf()
+
+
 config_store = ConfigStore.instance()
 config_store.store(
     group="hydra/launcher",
@@ -256,5 +288,11 @@ config_store.store(
     group="hydra/launcher",
     name="ray_aws",
     node=RayAWSLauncherConf,
+    provider="ray_launcher",
+)
+config_store.store(
+    group="hydra/launcher",
+    name="ray_gcp",
+    node=RayGCPLauncherConf,
     provider="ray_launcher",
 )

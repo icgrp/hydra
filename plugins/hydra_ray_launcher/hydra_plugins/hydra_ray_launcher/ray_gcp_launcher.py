@@ -9,23 +9,24 @@ from hydra.types import TaskFunction
 from omegaconf import DictConfig
 
 from hydra_plugins.hydra_ray_launcher._config import (  # type: ignore
-    RayAWSConf,
+    RayGCPConf,
     RsyncConf,
 )
 
 log = logging.getLogger(__name__)
 
 
-class RayAWSLauncher(Launcher):
+class RayGCPLauncher(Launcher):
     def __init__(
         self,
         env_setup: DictConfig,
-        ray: RayAWSConf,
+        ray: RayGCPConf,
         stop_cluster: bool,
         sync_up: RsyncConf,
         sync_down: RsyncConf,
     ) -> None:
         self.ray_cfg = ray
+        self.docker_enabled = bool(self.ray_cfg.cluster.docker.image)
         self.stop_cluster = stop_cluster
         self.sync_up = sync_up
         self.sync_down = sync_down

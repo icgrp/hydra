@@ -3,7 +3,7 @@ import logging
 import os
 import tempfile
 from pathlib import Path
-from typing import Any, Dict, List, Sequence
+from typing import Any, Dict, List, Sequence, Union
 
 import cloudpickle  # type: ignore
 import pickle5 as pickle  # type: ignore
@@ -24,6 +24,9 @@ from hydra_plugins.hydra_ray_launcher._launcher_util import (  # type: ignore
 )
 from hydra_plugins.hydra_ray_launcher.ray_aws_launcher import (  # type: ignore
     RayAWSLauncher,
+)
+from hydra_plugins.hydra_ray_launcher.ray_gcp_launcher import (  # type: ignore
+    RayGCPLauncher,
 )
 
 log = logging.getLogger(__name__)
@@ -48,7 +51,7 @@ def _pickle_jobs(tmp_dir: str, **jobspec: Dict[Any, Any]) -> None:
 
 
 def launch(
-    launcher: RayAWSLauncher,
+    launcher: Union[RayAWSLauncher, RayGCPLauncher],
     job_overrides: Sequence[Sequence[str]],
     initial_job_idx: int,
 ) -> Sequence[JobReturn]:
@@ -84,7 +87,7 @@ def launch(
                 launcher.config, list(overrides)
             )
             with open_dict(sweep_config):
-                # job.id will be set on the EC2 instance before running the job.
+                # job.id will be set on the cloud instance before running the job.
                 sweep_config.hydra.job.num = idx
 
             sweep_configs.append(sweep_config)
@@ -112,7 +115,9 @@ def launch(
 
 
 def launch_jobs(
-    launcher: RayAWSLauncher, local_tmp_dir: str, sweep_dir: Path
+    launcher: Union[RayAWSLauncher, RayGCPLauncher],
+	local_tmp_dir: str,
+	sweep_dir: Path
 ) -> Sequence[JobReturn]:
     ray_up(launcher.ray_yaml_path)
     with tempfile.TemporaryDirectory() as local_tmp_download_dir:

@@ -1,0 +1,87 @@
+defaults:
+  - override hydra/launcher: ray_gcp
+
+hydra:
+  launcher:
+    env_setup:
+      pip_packages:
+        omegaconf: ${ray_pkg_version:omegaconf}
+        hydra_core: 1.1.0dev5
+        ray: ${ray_pkg_version:ray}
+        cloudpickle: ${ray_pkg_version:cloudpickle}
+        pickle5: 0.0.11
+        hydra_ray_launcher: 1.1.0.dev1
+      commands:
+      - conda create -n hydra_${python_version:micro} python=${python_version:micro} -y
+      - echo 'export PATH="$HOME/anaconda3/envs/hydra_${python_version:micro}/bin:$PATH"' >> ~/.bashrc
+    ray:
+      init:
+        address: null
+      remote: {}
+      cluster:
+        cluster_name: default
+        min_workers: 0
+        max_workers: 2
+        initial_workers: 0
+        autoscaling_mode: default
+        target_utilization_fraction: 0.8
+        idle_timeout_minutes: 5
+        docker:
+          image: 'rayproject/ray-ml:latest-cpu'
+          container_name: 'ray_container'
+          pull_before_run: true
+          run_options: []
+        provider:
+          type: gcp
+          region: us-central1
+          availability_zone: us-central1-a
+          project_id: trim-modem-277014
+        auth:
+          ssh_user: stahmed_seas_upenn_edu
+          ssh_private_key: /home/lilbirb/.ssh/google_compute_engine
+        head_node:
+          machineType: n1-standard-2
+          disks:
+            - boot: true
+              autoDelete: true
+              type: PERSISTENT
+              initializeParams:
+                diskSizeGb: 50
+                # See https://cloud.google.com/compute/docs/images for more images
+                sourceImage: projects/deeplearning-platform-release/global/images/family/common-cpu
+        worker_nodes:
+          machineType: n1-standard-2
+          disks:
+            - boot: true
+              autoDelete: true
+              type: PERSISTENT
+              initializeParams:
+                diskSizeGb: 50
+                # See https://cloud.google.com/compute/docs/images for more images
+                sourceImage: projects/deeplearning-platform-release/global/images/family/common-cpu
+        file_mounts: {}
+        initialization_commands: ['sudo usermod -aG docker $USER; sleep 10']
+        setup_commands: []
+        head_setup_commands: []
+        worker_setup_commands: []
+        head_start_ray_commands:
+        - ray stop
+        - ulimit -n 65536;ray start --head --port=6379 --object-manager-port=8076             --autoscaling-config=~/ray_bootstrap_config.yaml
+        worker_start_ray_commands:
+        - ray stop
+        - ulimit -n 65536; ray start --address=$RAY_HEAD_IP:6379 --object-manager-port=8076
+      run_env: auto
+    stop_cluster: false
+    sync_up:
+      source_dir: null
+      target_dir: null
+      include: []
+      exclude: []
+    sync_down:
+      source_dir: null
+      target_dir: null
+      include: []
+      exclude: []
+
+
+task: 1
